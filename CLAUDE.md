@@ -39,6 +39,8 @@ Anything that doesn't serve this journey is out of scope.
 - `npm run dev` · `npm run db:migrate` · `npm run db:seed -- --name "<real name>" --area "<area>"` (both read `.env.local`)
 - Schema changes = new file in `db/migrations/NNN_*.sql`; never edit an applied one. DB access via `db()` in `lib/db.ts`.
 - Next.js 16 with Cache Components: see AGENTS.md; per-request DB reads go inside `<Suspense>`.
+- Staff upload: `/upload/[token]` → `POST /api/upload` (sharp re-encode strips EXIF → public Blob → insert). Bad tokens 404 in `proxy.ts`.
+- One photo per spot per India-time day, enforced by a unique index; the UI and API only pre-check it.
 
 ## Data & access
 - Exactly one seeded, real restaurant (no fake data). Seed it via a script/migration.

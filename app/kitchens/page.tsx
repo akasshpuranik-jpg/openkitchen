@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { getKitchenList } from "@/lib/kitchen";
+import { KitchenRowsSkeleton } from "../_components/skeletons";
 import { KitchenSearch } from "./kitchen-search";
 
 export const metadata: Metadata = {
@@ -16,7 +17,7 @@ export default function KitchensPage() {
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Kitchens</h1>
         <p className="text-zinc-600 dark:text-zinc-400">Today&apos;s photo status for every kitchen on OpenKitchen.</p>
       </header>
-      <Suspense fallback={<p className="text-sm text-zinc-500">Loading kitchens…</p>}>
+      <Suspense fallback={<KitchenRowsSkeleton />}>
         <AllKitchens />
       </Suspense>
     </main>

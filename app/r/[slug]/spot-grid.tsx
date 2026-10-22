@@ -145,10 +145,16 @@ function PhotoBox({ url, alt }: { url: string; alt: string }) {
         onLoad={(e) => {
           e.currentTarget.dataset.loaded = "";
         }}
+        onError={(e) => {
+          e.currentTarget.dataset.error = "";
+        }}
         className="motion-img absolute inset-0 size-full object-cover"
       />
       <span aria-hidden className="motion-shimmer-layer absolute inset-0 overflow-hidden">
         <span className="motion-shimmer block h-full w-full bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-white/10" />
+      </span>
+      <span aria-hidden className="motion-img-fallback absolute inset-0 flex items-center justify-center text-sm text-zinc-500">
+        Photo couldn&apos;t load
       </span>
     </span>
   );

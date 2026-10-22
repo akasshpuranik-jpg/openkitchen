@@ -25,6 +25,7 @@ type CardState =
       status: FindingStatus | null;
       fresh: boolean; // verdict arrived on this page, so animate it in
       rechecking: boolean;
+      stalled: boolean; // polling gave up before a verdict: stop the scan, ask for a refresh
     };
 
 // Staff-facing wording and colour for each verdict.
@@ -91,6 +92,7 @@ function SpotCard({ token, spot, onUploaded }: { token: string; spot: SpotToday;
           status: spot.photo.status,
           fresh: false,
           rechecking: false,
+          stalled: false,
         }
       : { kind: "empty", picking: false, failed: null },
   );
@@ -157,6 +159,8 @@ function SpotCard({ token, spot, onUploaded }: { token: string; spot: SpotToday;
         // Network blip; try again on the next tick.
       }
       if (Date.now() - started < POLL_GIVE_UP_MS) timer = setTimeout(poll, POLL_MS);
+      // Stop the scanning band rather than let it loop with nothing behind it.
+      else setState((s) => (s.kind === "done" ? { ...s, stalled: true } : s));
     }
     timer = setTimeout(poll, POLL_MS);
     return () => clearTimeout(timer);
@@ -208,6 +212,7 @@ function SpotCard({ token, spot, onUploaded }: { token: string; spot: SpotToday;
       status: null,
       fresh: true,
       rechecking: false,
+      stalled: false,
     });
     onUploaded();
   }
@@ -290,11 +295,13 @@ function Verdict({
   label: string;
   onRecheck: () => void;
 }) {
-  const checking = state.note === null || state.rechecking;
+  const checking = (state.note === null && !state.stalled) || state.rechecking;
   const verdict = !checking && state.status ? VERDICT[state.status] : null;
   // Note lines appear one after another. "No visible issues" is already the chip.
   const lines =
-    checking || !state.note || state.status === "ok"
+    !checking && state.note === null
+      ? ["Still checking. Refresh the page in a minute to see the result."]
+      : checking || !state.note || state.status === "ok"
       ? []
       : state.status === "error"
         ? ["Claude couldn't check this photo yet. Your photo is saved."]

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatKitchenToday, getLast7Days, getRestaurantBySlug, getSpotsToday } from "@/lib/kitchen";
+import { DinerSkeleton } from "../../_components/skeletons";
 import { DinerView } from "./diner-view";
 import { LiveRefresh } from "./live-refresh";
 import { ShareButton } from "./share-button";
@@ -15,7 +16,7 @@ export default function RestaurantPage({ params }: PageProps<"/r/[slug]">) {
         </Link>
         <ShareButton />
       </div>
-      <Suspense fallback={<p className="text-zinc-500">Loading today&apos;s kitchen…</p>}>
+      <Suspense fallback={<DinerSkeleton />}>
         <DinerPage params={params} />
       </Suspense>
       <LiveRefresh />

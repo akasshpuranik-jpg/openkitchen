@@ -154,9 +154,11 @@ body {
       motion-attention 700ms ease-in-out calc(var(--motion-enter) + 150ms) 1;
   }
 
-  /* Loading placeholder in a photo's 4:3 box: a soft band drifting across. */
+  /* Loading placeholder in a photo's 4:3 box: a soft band drifting across. Bounded to
+     4 sweeps (~6s) so a slow or broken image never leaves it looping; it then rests
+     off-box ("forwards") and the plain grey box remains. */
   .motion-shimmer {
-    animation: motion-shimmer 1.4s ease-in-out infinite;
+    animation: motion-shimmer 1.4s ease-in-out 4 forwards;
   }
 
   /* A photo fades in once it has loaded (data-loaded set by the image's onLoad). */
@@ -171,11 +173,20 @@ body {
   .motion-shimmer-layer {
     transition: opacity var(--motion-enter) var(--motion-ease);
   }
-  .motion-img[data-loaded] ~ .motion-shimmer-layer {
+  .motion-img[data-loaded] ~ .motion-shimmer-layer,
+  .motion-img[data-error] ~ .motion-shimmer-layer {
     opacity: 0;
   }
-  .motion-img[data-loaded] ~ .motion-shimmer-layer .motion-shimmer {
+  .motion-img[data-loaded] ~ .motion-shimmer-layer .motion-shimmer,
+  .motion-img[data-error] ~ .motion-shimmer-layer .motion-shimmer {
     animation: none;
+  }
+  /* Shown in place of a photo that failed to load. */
+  .motion-img-fallback {
+    opacity: 0;
+  }
+  .motion-img[data-error] ~ .motion-img-fallback {
+    opacity: 1;
   }
 
   /* 7-day grid: cells wait hidden until the grid scrolls into view, then fill

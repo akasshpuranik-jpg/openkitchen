@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { getKitchenList } from "@/lib/kitchen";
 import { delay } from "@/lib/motion";
 import { KitchenRows } from "./_components/kitchen-rows";
+import { KitchenRowsSkeleton } from "./_components/skeletons";
 import { StepsReveal } from "./_components/steps-reveal";
 
 const STEPS = [
@@ -52,7 +53,7 @@ export default function Home() {
             Search kitchens
           </Link>
         </div>
-        <Suspense fallback={<p className="text-sm text-zinc-500">Loading kitchens…</p>}>
+        <Suspense fallback={<KitchenRowsSkeleton />}>
           <TodayList />
         </Suspense>
       </section>

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { getKitchenList } from "@/lib/kitchen";
+import { stagger } from "@/lib/motion";
 import { KitchenRows } from "./_components/kitchen-rows";
 
 const STEPS = [
@@ -27,7 +28,11 @@ export default function Home() {
         <h2 className="text-lg font-semibold">How it works</h2>
         <ol className="grid gap-3 sm:grid-cols-3">
           {STEPS.map((step, i) => (
-            <li key={step.title} className="flex flex-col gap-1 rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
+            <li
+              key={step.title}
+              style={stagger(i)}
+              className="motion-enter motion-lift flex flex-col gap-1 rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800"
+            >
               <span className="text-xs font-medium text-zinc-500">Step {i + 1}</span>
               <span className="font-medium">{step.title}</span>
               <span className="text-sm text-zinc-600 dark:text-zinc-400">{step.body}</span>
@@ -39,7 +44,7 @@ export default function Home() {
       <section className="flex flex-col gap-4">
         <div className="flex items-baseline justify-between gap-4">
           <h2 className="text-lg font-semibold">Kitchens today</h2>
-          <Link href="/kitchens" className="text-sm text-zinc-600 underline-offset-4 hover:underline dark:text-zinc-400">
+          <Link href="/kitchens" className="motion-link text-sm text-zinc-600 underline-offset-4 hover:underline dark:text-zinc-400">
             Search kitchens
           </Link>
         </div>

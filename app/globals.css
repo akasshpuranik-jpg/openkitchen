@@ -24,3 +24,104 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ── Motion ──────────────────────────────────────────────────────────────────
+   One small system for the whole site: calm, fast, transform + opacity only
+   (no layout shift). Tokens live here; components use the classes below.    */
+:root {
+  --motion-hover: 150ms; /* hover / press feedback */
+  --motion-ui: 250ms; /* UI state changes */
+  --motion-enter: 400ms; /* page and list entrances */
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1); /* ease-out */
+  --motion-stagger: 60ms; /* per item; set --i on the item */
+  --motion-shadow: 0 6px 16px -6px rgb(0 0 0 / 0.18), 0 2px 4px -2px rgb(0 0 0 / 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --motion-shadow: 0 6px 18px -6px rgb(0 0 0 / 0.7), 0 2px 4px -2px rgb(0 0 0 / 0.5);
+  }
+}
+
+@keyframes motion-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes motion-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@layer components {
+  /* Entrance: fade in and rise 8px. Lists set style={{ "--i": index }} to stagger. */
+  .motion-enter {
+    animation: motion-enter var(--motion-enter) var(--motion-ease) both;
+    animation-delay: calc(var(--i, 0) * var(--motion-stagger));
+  }
+
+  /* Buttons, cards and boxed links: lift 2px with a soft shadow on hover, 0.98 on press.
+     The shadow sits on a pseudo-element and only its opacity animates. */
+  .motion-lift {
+    position: relative;
+    transition: transform var(--motion-hover) var(--motion-ease);
+  }
+  .motion-lift::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: var(--motion-shadow);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--motion-hover) var(--motion-ease);
+  }
+
+  /* Plain text links: the same lift and press, without a shadow behind the text. */
+  .motion-link {
+    display: inline-block;
+    transition: transform var(--motion-hover) var(--motion-ease);
+  }
+
+  /* Hover only where hover exists, so taps on a phone don't leave cards "stuck" up. */
+  @media (hover: hover) {
+    .motion-lift:hover,
+    .motion-link:hover {
+      transform: translateY(-2px);
+    }
+    .motion-lift:hover::after {
+      opacity: 1;
+    }
+  }
+  .motion-lift:active,
+  .motion-link:active {
+    transform: scale(0.98);
+  }
+
+  /* Short opacity change for UI state swaps (e.g. "Checking…" → a note). */
+  .motion-swap {
+    animation: motion-fade var(--motion-ui) var(--motion-ease) both;
+  }
+}
+
+/* Reduced motion: no movement at all; keep only very short opacity changes. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-hover: 0ms;
+    --motion-ui: 100ms;
+    --motion-enter: 120ms;
+    --motion-stagger: 0ms;
+  }
+  .motion-enter {
+    animation-name: motion-fade;
+  }
+  .motion-lift:hover,
+  .motion-link:hover,
+  .motion-lift:active,
+  .motion-link:active {
+    transform: none;
+  }
+}

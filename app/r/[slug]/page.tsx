@@ -9,7 +9,7 @@ export default function RestaurantPage({ params }: PageProps<"/r/[slug]">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6 sm:py-10">
       <div className="flex items-start justify-between gap-4">
-        <Link href="/kitchens" className="whitespace-nowrap py-2 text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
+        <Link href="/kitchens" className="motion-link whitespace-nowrap py-2 text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
           ← Back to all kitchens
         </Link>
         <ShareButton />

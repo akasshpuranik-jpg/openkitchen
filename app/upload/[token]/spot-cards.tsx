@@ -130,7 +130,7 @@ function SpotCard({ token, spot, onUploaded }: { token: string; spot: SpotToday;
   }
 
   return (
-    <li className="overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+    <li className="motion-lift rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex flex-col gap-1 p-4">
         <h2 className="text-lg font-semibold">{spot.label}</h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">{spot.checklist}</p>
@@ -142,7 +142,7 @@ function SpotCard({ token, spot, onUploaded }: { token: string; spot: SpotToday;
           <img src={state.blobUrl} alt={`${spot.label} today`} className="aspect-[4/3] w-full object-cover" />
           <div className="flex items-center justify-between gap-2 p-4 text-sm">
             <span className="tabular-nums text-zinc-600 dark:text-zinc-400">{state.capturedAt}</span>
-            <span className="text-right font-medium">
+            <span key={state.rechecking ? "rechecking" : (state.note ?? "checking")} className="motion-swap text-right font-medium">
               {state.rechecking ? "Checking again…" : (state.note ?? "Checking…")}
             </span>
           </div>
@@ -152,7 +152,7 @@ function SpotCard({ token, spot, onUploaded }: { token: string; spot: SpotToday;
                 type="button"
                 disabled={state.rechecking}
                 onClick={() => recheck(state.photoId)}
-                className="h-10 w-full rounded-xl border border-zinc-300 text-sm font-medium disabled:opacity-60 dark:border-zinc-700"
+                className="motion-lift h-10 w-full rounded-xl border border-zinc-300 text-sm font-medium disabled:opacity-60 dark:border-zinc-700"
               >
                 Check again
               </button>
@@ -162,8 +162,8 @@ function SpotCard({ token, spot, onUploaded }: { token: string; spot: SpotToday;
       ) : (
         <div className="flex flex-col gap-2 p-4 pt-0">
           <label
-            className={`flex h-12 items-center justify-center rounded-xl bg-zinc-900 font-medium text-white dark:bg-white dark:text-zinc-900 ${
-              state.kind === "uploading" ? "pointer-events-none opacity-60" : "cursor-pointer active:opacity-80"
+            className={`motion-lift flex h-12 items-center justify-center rounded-xl bg-zinc-900 font-medium text-white dark:bg-white dark:text-zinc-900 ${
+              state.kind === "uploading" ? "pointer-events-none opacity-60" : "cursor-pointer"
             }`}
           >
             {state.kind === "uploading" ? "Uploading…" : "Take photo"}

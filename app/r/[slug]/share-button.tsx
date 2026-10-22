@@ -23,9 +23,11 @@ export function ShareButton() {
       <button
         type="button"
         onClick={share}
-        className="h-9 rounded-xl border border-zinc-300 px-3 text-sm font-medium hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
+        className="motion-lift h-9 rounded-xl border border-zinc-300 px-3 text-sm font-medium hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
       >
-        {state === "copied" ? "Link copied" : "Share this page"}
+        <span key={state === "copied" ? "copied" : "share"} className="motion-swap inline-block">
+          {state === "copied" ? "Link copied" : "Share this page"}
+        </span>
       </button>
       <span aria-live="polite" className="sr-only">
         {state === "copied" ? "Link copied to clipboard" : ""}
@@ -35,7 +37,7 @@ export function ShareButton() {
           readOnly
           value={state.manual}
           onFocus={(e) => e.target.select()}
-          className="w-64 max-w-full rounded-lg border border-zinc-300 px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-950"
+          className="motion-swap w-64 max-w-full rounded-lg border border-zinc-300 px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-950"
         />
       )}
     </div>

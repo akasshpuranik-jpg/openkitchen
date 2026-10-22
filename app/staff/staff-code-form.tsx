@@ -52,11 +52,11 @@ export function StaffCodeForm() {
       <button
         type="submit"
         disabled={state === "checking" || !code.trim()}
-        className="h-12 rounded-xl bg-zinc-900 font-medium text-white disabled:opacity-60 dark:bg-white dark:text-zinc-900"
+        className="motion-lift h-12 rounded-xl bg-zinc-900 font-medium text-white disabled:opacity-60 dark:bg-white dark:text-zinc-900"
       >
         {state === "checking" ? "Checking…" : "Continue"}
       </button>
-      <p aria-live="polite" className="min-h-5 text-sm text-red-600">
+      <p key={state} aria-live="polite" className="motion-swap min-h-5 text-sm text-red-600">
         {state === "wrong" && "Code not recognised"}
         {state === "failed" && "Couldn't check the code. Please try again."}
       </p>

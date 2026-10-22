@@ -29,7 +29,7 @@ export default async function UploadPage({ params }: PageProps<"/upload/[token]"
         <p className="text-sm text-zinc-600 dark:text-zinc-400">{restaurant.area}</p>
         <Link
           href={`/r/${restaurant.slug}`}
-          className="mt-2 inline-block text-sm font-medium underline underline-offset-4"
+          className="motion-link mt-2 text-sm font-medium underline underline-offset-4"
         >
           See what diners see →
         </Link>

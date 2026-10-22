@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { stagger } from "@/lib/motion";
 
 export const metadata: Metadata = {
   title: "For restaurants · OpenKitchen",
@@ -33,8 +34,12 @@ export default function ForRestaurantsPage() {
           set spots with the camera. That&apos;s it.
         </p>
         <ul className="grid gap-3 sm:grid-cols-2">
-          {ROUTINE.map((r) => (
-            <li key={r.spot} className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
+          {ROUTINE.map((r, i) => (
+            <li
+              key={r.spot}
+              style={stagger(i)}
+              className="motion-enter motion-lift rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800"
+            >
               <span className="block font-medium">{r.spot}</span>
               <span className="block text-sm text-zinc-600 dark:text-zinc-400">{r.what}</span>
             </li>
@@ -60,14 +65,14 @@ export default function ForRestaurantsPage() {
         </ul>
       </section>
 
-      <section className="flex flex-col gap-2 rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
+      <section className="motion-lift flex flex-col gap-2 rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
         <h2 className="font-semibold">Get your kitchen listed</h2>
         {CONTACT_EMAIL ? (
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             Email{" "}
             <a
               href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("List my kitchen on OpenKitchen")}`}
-              className="font-medium text-zinc-900 underline underline-offset-4 dark:text-zinc-100"
+              className="motion-link font-medium text-zinc-900 underline underline-offset-4 dark:text-zinc-100"
             >
               {CONTACT_EMAIL}
             </a>{" "}

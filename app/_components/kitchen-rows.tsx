@@ -1,18 +1,19 @@
 import Link from "next/link";
 import type { KitchenSummary } from "@/lib/kitchen";
+import { stagger } from "@/lib/motion";
 
 // One row per restaurant with today's progress. Used by the homepage and /kitchens.
 export function KitchenRows({ kitchens, emptyText }: { kitchens: KitchenSummary[]; emptyText: string }) {
   if (kitchens.length === 0) {
-    return <p className="rounded-2xl border border-zinc-200 p-6 text-sm text-zinc-500 dark:border-zinc-800">{emptyText}</p>;
+    return <p className="motion-swap rounded-2xl border border-zinc-200 p-6 text-sm text-zinc-500 dark:border-zinc-800">{emptyText}</p>;
   }
   return (
-    <ul className="divide-y divide-zinc-200 overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
-      {kitchens.map((k) => (
-        <li key={k.slug}>
+    <ul className="flex flex-col gap-2">
+      {kitchens.map((k, i) => (
+        <li key={k.slug} className="motion-enter" style={stagger(i)}>
           <Link
             href={`/r/${k.slug}`}
-            className="flex items-center justify-between gap-4 px-4 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+            className="motion-lift flex items-center justify-between gap-4 rounded-2xl border border-zinc-200 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-950"
           >
             <span className="min-w-0">
               <span className="block truncate font-medium">{k.name}</span>

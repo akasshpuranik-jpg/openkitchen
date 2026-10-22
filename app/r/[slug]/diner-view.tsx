@@ -1,5 +1,6 @@
 import type { DayRow, DayState, FindingStatus, Restaurant, SpotToday } from "@/lib/kitchen";
 import { formatKitchenDay } from "@/lib/kitchen";
+import { stagger } from "@/lib/motion";
 
 // Pure view: all data, times and notes are computed on the server before this renders.
 export function DinerView({
@@ -32,8 +33,8 @@ export function DinerView({
       )}
 
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {spots.map((spot) => (
-          <SpotCard key={spot.spotId} spot={spot} />
+        {spots.map((spot, i) => (
+          <SpotCard key={spot.spotId} spot={spot} index={i} />
         ))}
       </ul>
 
@@ -43,15 +44,16 @@ export function DinerView({
   );
 }
 
-function SpotCard({ spot }: { spot: SpotToday }) {
+function SpotCard({ spot, index }: { spot: SpotToday; index: number }) {
   const photo = spot.photo;
+  // No overflow-hidden here: it would clip the hover shadow, so the photo rounds its own corners.
   return (
-    <li className="flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+    <li style={stagger(index)} className="motion-enter motion-lift flex flex-col rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
       {photo ? (
         // eslint-disable-next-line @next/next/no-img-element -- Blob URL, already 1600px
-        <img src={photo.blobUrl} alt={`${spot.label}, today`} loading="lazy" className="aspect-[4/3] w-full bg-zinc-100 object-cover dark:bg-zinc-900" />
+        <img src={photo.blobUrl} alt={`${spot.label}, today`} loading="lazy" className="aspect-[4/3] w-full rounded-t-[calc(1rem-1px)] bg-zinc-100 object-cover dark:bg-zinc-900" />
       ) : (
-        <div className="flex aspect-[4/3] w-full items-center justify-center bg-zinc-100 text-sm text-zinc-500 dark:bg-zinc-900">
+        <div className="flex aspect-[4/3] w-full items-center justify-center rounded-t-[calc(1rem-1px)] bg-zinc-100 text-sm text-zinc-500 dark:bg-zinc-900">
           No photo yet today
         </div>
       )}

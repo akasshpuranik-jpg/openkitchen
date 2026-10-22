@@ -86,7 +86,9 @@ export async function runPhotoCheck(input: {
   spotLabel: string;
   checklist: string;
 }): Promise<{ finding: Finding; raw: string | null }> {
-  client ??= new Anthropic();
+  // Worst case 2 × 25 s stays inside the upload route's 60 s maxDuration, so a slow
+  // API still ends in a saved "unclear" finding instead of a killed function.
+  client ??= new Anthropic({ timeout: 25_000, maxRetries: 1 });
   try {
     const response = await client.beta.messages.create({
       model: CHECK_MODEL,

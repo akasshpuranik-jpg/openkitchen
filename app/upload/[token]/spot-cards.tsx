@@ -16,7 +16,8 @@ type CardState =
   | { kind: "done"; photoId: string; blobUrl: string; capturedAt: string; note: string | null };
 
 export function SpotCards({ token, spots }: { token: string; spots: SpotToday[] }) {
-  const done = spots.filter((s) => s.photo).length;
+  const [uploadedHere, setUploadedHere] = useState(0);
+  const done = spots.filter((s) => s.photo).length + uploadedHere;
   return (
     <>
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -24,14 +25,14 @@ export function SpotCards({ token, spots }: { token: string; spots: SpotToday[] 
       </p>
       <ul className="flex flex-col gap-4">
         {spots.map((spot) => (
-          <SpotCard key={spot.spotId} token={token} spot={spot} />
+          <SpotCard key={spot.spotId} token={token} spot={spot} onUploaded={() => setUploadedHere((n) => n + 1)} />
         ))}
       </ul>
     </>
   );
 }
 
-function SpotCard({ token, spot }: { token: string; spot: SpotToday }) {
+function SpotCard({ token, spot, onUploaded }: { token: string; spot: SpotToday; onUploaded: () => void }) {
   const [state, setState] = useState<CardState>(
     spot.photo ? { kind: "done", photoId: spot.photo.id, ...spot.photo } : { kind: "empty" },
   );
@@ -62,19 +63,32 @@ function SpotCard({ token, spot }: { token: string; spot: SpotToday }) {
   async function onFile(file: File | undefined) {
     if (!file) return;
     setState({ kind: "uploading" });
+    let photo: Blob;
+    try {
+      photo = await compressImage(file);
+    } catch {
+      setState({ kind: "error", message: "Couldn't read that photo. Take it again with the camera." });
+      return;
+    }
     try {
       const form = new FormData();
       form.set("token", token);
       form.set("spotId", spot.spotId);
-      form.set("photo", await compressImage(file), "photo.jpg");
+      form.set("photo", photo, "photo.jpg");
       const res = await fetch("/api/upload", { method: "POST", body: form });
-      const body = (await res.json()) as UploadResponse;
+      // Platform errors (e.g. a 413 from Vercel or a 500) may not be our JSON shape.
+      const body = (await res.json().catch(() => null)) as UploadResponse | null;
+      if (!body) {
+        setState({ kind: "error", message: `Upload failed (error ${res.status}). Please try again.` });
+        return;
+      }
       if (!body.ok) {
         // 409: someone already uploaded this spot today; reload shows their photo.
         setState({ kind: "error", message: body.error });
         return;
       }
       setState({ kind: "done", photoId: body.photoId, blobUrl: body.blobUrl, capturedAt: body.capturedAt, note: null });
+      onUploaded();
     } catch {
       setState({ kind: "error", message: "Upload failed. Check your connection and try again." });
     }

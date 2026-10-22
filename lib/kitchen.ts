@@ -78,6 +78,12 @@ export async function getRestaurantBySlug(slug: string): Promise<Restaurant | nu
   return (rows[0] as Restaurant | undefined) ?? null;
 }
 
+// The demo restaurant for the landing page: the MVP seeds exactly one.
+export async function getDemoRestaurant(): Promise<Pick<Restaurant, "name" | "area" | "slug"> | null> {
+  const rows = await db()`SELECT name, area, slug FROM restaurants ORDER BY created_at LIMIT 1`;
+  return (rows[0] as Pick<Restaurant, "name" | "area" | "slug"> | undefined) ?? null;
+}
+
 // Today and the 6 days before it (India time), newest first, never earlier than the
 // day the restaurant joined. Each spot is its latest finding status, "checking", or "missed".
 export async function getLast7Days(restaurantId: string): Promise<DayRow[]> {

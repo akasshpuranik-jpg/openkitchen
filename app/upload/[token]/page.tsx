@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatKitchenToday, getRestaurantByUploadToken, getSpotsToday } from "@/lib/kitchen";
 import { SpotCards } from "./spot-cards";
@@ -26,6 +27,12 @@ export default async function UploadPage({ params }: PageProps<"/upload/[token]"
         <p className="text-sm text-zinc-500">Kitchen photos · {formatKitchenToday()}</p>
         <h1 className="text-2xl font-semibold tracking-tight">{restaurant.name}</h1>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">{restaurant.area}</p>
+        <Link
+          href={`/r/${restaurant.slug}`}
+          className="mt-2 inline-block text-sm font-medium underline underline-offset-4"
+        >
+          See what diners see →
+        </Link>
       </header>
       <SpotCards token={token} spots={spots} />
     </main>

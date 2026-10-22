@@ -39,10 +39,6 @@ export function DinerView({
 
       {days.length > 0 && <History days={days} />}
 
-      <footer className="border-t border-zinc-200 pt-4 text-xs leading-relaxed text-zinc-500 dark:border-zinc-800">
-        Photos are taken by kitchen staff on the day and time-stamped by our server (India time). They can&apos;t be
-        replaced or deleted. Notes come from an automated photo check and describe only what&apos;s visible.
-      </footer>
     </div>
   );
 }

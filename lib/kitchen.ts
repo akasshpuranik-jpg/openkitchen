@@ -105,10 +105,45 @@ export async function getMissingToday(): Promise<MissingToday> {
   return { date: rows[0]?.today ?? "", restaurants: [...bySlug.values()] };
 }
 
-// The demo restaurant for the landing page: the MVP seeds exactly one.
-export async function getDemoRestaurant(): Promise<Pick<Restaurant, "name" | "area" | "slug"> | null> {
-  const rows = await db()`SELECT name, area, slug FROM restaurants ORDER BY created_at LIMIT 1`;
-  return (rows[0] as Pick<Restaurant, "name" | "area" | "slug"> | undefined) ?? null;
+export type KitchenSummary = {
+  name: string;
+  area: string;
+  slug: string;
+  posted: number; // spots with a photo today (India time)
+  total: number; // spots for this restaurant (4)
+  issueSpotted: boolean; // any of today's photos whose latest finding is "issues"
+};
+
+// Every restaurant with today's progress, for the homepage and /kitchens.
+export async function getKitchenList(): Promise<KitchenSummary[]> {
+  const rows = await db()`
+    SELECT r.name, r.area, r.slug,
+           count(DISTINCT s.id)::int AS total,
+           count(DISTINCT p.spot_id)::int AS posted,
+           coalesce(bool_or(f.status = 'issues'), false) AS issue_spotted
+    FROM restaurants r
+    JOIN spots s ON s.restaurant_id = r.id
+    LEFT JOIN photos p
+      ON p.spot_id = s.id
+     AND (p.captured_at AT TIME ZONE ${KITCHEN_TZ})::date = (now() AT TIME ZONE ${KITCHEN_TZ})::date
+    LEFT JOIN LATERAL (
+      SELECT status FROM findings WHERE photo_id = p.id ORDER BY created_at DESC LIMIT 1
+    ) f ON true
+    GROUP BY r.id
+    ORDER BY r.name`;
+  return rows.map((r) => ({
+    name: r.name,
+    area: r.area,
+    slug: r.slug,
+    posted: r.posted,
+    total: r.total,
+    issueSpotted: r.issue_spotted,
+  }));
+}
+
+// Staff code check for /staff: true when the code is a restaurant's upload token.
+export async function isValidUploadToken(token: string) {
+  return (await getRestaurantByUploadToken(token)) !== null;
 }
 
 // Today and the 6 days before it (India time), newest first, never earlier than the

@@ -1,6 +1,10 @@
-import { getFindingNote, getRestaurantByUploadToken } from "@/lib/kitchen";
+import { getLatestFinding, getRestaurantByUploadToken, type FindingStatus } from "@/lib/kitchen";
 
-export type FindingResponse = { ok: true; note: string | null } | { ok: false; error: string };
+export type FindingResponse =
+  | { ok: true; note: string | null; status: FindingStatus | null }
+  | { ok: false; error: string };
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Polled by the upload card while a photo shows "Checking…". note is null until the check is saved.
 export async function GET(request: Request) {
@@ -12,6 +16,9 @@ export async function GET(request: Request) {
   if (!restaurant) {
     return Response.json({ ok: false, error: "Upload link not found." } satisfies FindingResponse, { status: 404 });
   }
-  const note = await getFindingNote(restaurant.id, photoId).catch(() => null);
-  return Response.json({ ok: true, note } satisfies FindingResponse, { headers: { "Cache-Control": "no-store" } });
+  const finding = UUID.test(photoId) ? await getLatestFinding(restaurant.id, photoId) : null;
+  return Response.json(
+    { ok: true, note: finding?.note ?? null, status: finding?.status ?? null } satisfies FindingResponse,
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }

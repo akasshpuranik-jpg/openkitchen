@@ -54,7 +54,8 @@ export type CheckResult = z.infer<typeof CheckResult>;
 
 export type Finding = {
   spot_match: boolean | null;
-  status: "ok" | "issues" | "unclear";
+  // ok/issues/unclear are Claude's verdicts; "error" means the check itself didn't run.
+  status: "ok" | "issues" | "unclear" | "error";
   issues: CheckResult["issues"];
   confidence: number;
   note: string;
@@ -63,7 +64,8 @@ export type Finding = {
 
 export const NOTES = {
   ok: "No visible issues",
-  unclear: "Unclear photo — couldn't check",
+  unclear: "Unclear photo — too dark, blurry or hard to judge",
+  error: "Not checked yet — the automatic check couldn't run",
   mismatch: (spotLabel: string) => `Photo doesn't match the ${spotLabel.toLowerCase()} spot`,
 };
 
@@ -87,7 +89,7 @@ export async function runPhotoCheck(input: {
   checklist: string;
 }): Promise<{ finding: Finding; raw: string | null }> {
   // Worst case 2 × 25 s stays inside the upload route's 60 s maxDuration, so a slow
-  // API still ends in a saved "unclear" finding instead of a killed function.
+  // API still ends in a saved "error" finding instead of a killed function.
   client ??= new Anthropic({ timeout: 25_000, maxRetries: 1 });
   try {
     const response = await client.beta.messages.create({
@@ -110,7 +112,7 @@ export async function runPhotoCheck(input: {
 
     if (response.stop_reason === "refusal") {
       console.error("photo check refused", response.stop_details);
-      return { finding: unclearFinding(), raw: null };
+      return { finding: errorFinding(), raw: null };
     }
     const text = response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
     return { finding: buildFinding(text, input.spotLabel), raw: text };
@@ -120,17 +122,19 @@ export async function runPhotoCheck(input: {
     } else {
       console.error("photo check failed:", err);
     }
-    return { finding: unclearFinding(), raw: null };
+    return { finding: errorFinding(), raw: null };
   }
 }
 
-// Turns Claude's raw text into a finding. Anything that doesn't validate is "unclear".
+// Turns Claude's raw text into a finding. A reply that doesn't validate means the check
+// failed ("error"); "unclear" is reserved for Claude judging the photo itself.
 export function buildFinding(raw: string, spotLabel: string): Finding {
   let parsed: CheckResult;
   try {
     parsed = CheckResult.parse(JSON.parse(raw));
   } catch {
-    return unclearFinding();
+    console.error("photo check reply didn't validate:", raw.slice(0, 500));
+    return errorFinding();
   }
 
   const base = { spot_match: parsed.spot_match, issues: parsed.issues, confidence: parsed.confidence, model: CHECK_MODEL };
@@ -150,8 +154,8 @@ export function buildFinding(raw: string, spotLabel: string): Finding {
   return { ...base, status: "issues", note };
 }
 
-function unclearFinding(): Finding {
-  return { spot_match: null, status: "unclear", issues: [], confidence: 0, note: NOTES.unclear, model: CHECK_MODEL };
+function errorFinding(): Finding {
+  return { spot_match: null, status: "error", issues: [], confidence: 0, note: NOTES.error, model: CHECK_MODEL };
 }
 
 // Location phrase from Claude: plain words only, lower case, no punctuation tricks.

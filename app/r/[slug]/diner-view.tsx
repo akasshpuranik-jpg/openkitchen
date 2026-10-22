@@ -66,7 +66,7 @@ function SpotCard({ spot }: { spot: SpotToday }) {
         </div>
         {photo ? (
           <>
-            <p className="text-sm text-zinc-900 dark:text-zinc-100">{photo.note ?? "Photo check in progress"}</p>
+            <p className="text-sm text-zinc-900 dark:text-zinc-100">{dinerNote(photo)}</p>
             <p className="text-xs tabular-nums text-zinc-500">Posted {photo.postedTime}</p>
           </>
         ) : (
@@ -77,11 +77,19 @@ function SpotCard({ spot }: { spot: SpotToday }) {
   );
 }
 
+// Diners see a neutral line while the automatic check hasn't run (staff still see the
+// failure and a "Check again" button on the upload page). Never shown as "no issues".
+function dinerNote(photo: NonNullable<SpotToday["photo"]>) {
+  if (photo.status === "error" || photo.note === null) return "Photo posted · automatic check pending";
+  return photo.note;
+}
+
 const CHIP: Record<FindingStatus | "checking", { label: string; className: string }> = {
   ok: { label: "No issues", className: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300" },
   issues: { label: "Issues", className: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300" },
   unclear: { label: "Unclear", className: "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300" },
   checking: { label: "Checking", className: "bg-zinc-100 text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400" },
+  error: { label: "Check pending", className: "bg-zinc-100 text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400" },
 };
 
 function StatusChip({ status }: { status: FindingStatus | null }) {
@@ -94,6 +102,7 @@ const DOT: Record<DayState, { label: string; className: string }> = {
   issues: { label: "Issues", className: "bg-amber-500" },
   unclear: { label: "Unclear", className: "bg-zinc-400" },
   checking: { label: "Checking", className: "bg-zinc-300 dark:bg-zinc-600" },
+  error: { label: "Check pending", className: "bg-zinc-300 dark:bg-zinc-600" },
   missed: { label: "Missed", className: "border-2 border-red-500 bg-transparent" },
 };
 
@@ -136,7 +145,7 @@ function History({ days }: { days: DayRow[] }) {
         </table>
       </div>
       <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-600 dark:text-zinc-400">
-        {(["ok", "issues", "unclear", "missed"] as const).map((state) => (
+        {(["ok", "issues", "unclear", "error", "missed"] as const).map((state) => (
           <li key={state} className="flex items-center gap-1.5">
             <span className={`inline-block size-2.5 rounded-full ${DOT[state].className}`} />
             {DOT[state].label}

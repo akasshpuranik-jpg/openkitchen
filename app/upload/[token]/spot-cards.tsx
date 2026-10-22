@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { SpotToday } from "@/lib/kitchen";
+import type { FindingStatus, SpotToday } from "@/lib/kitchen";
 import type { UploadResponse } from "@/app/api/upload/route";
 import type { FindingResponse } from "@/app/api/finding/route";
+import type { RecheckResponse } from "@/app/api/recheck/route";
 import { compressImage } from "@/lib/compress-image";
 
 const POLL_MS = 2000;
@@ -13,7 +14,15 @@ type CardState =
   | { kind: "empty" }
   | { kind: "uploading" }
   | { kind: "error"; message: string }
-  | { kind: "done"; photoId: string; blobUrl: string; capturedAt: string; note: string | null };
+  | {
+      kind: "done";
+      photoId: string;
+      blobUrl: string;
+      capturedAt: string;
+      note: string | null;
+      status: FindingStatus | null;
+      rechecking?: boolean;
+    };
 
 export function SpotCards({ token, spots }: { token: string; spots: SpotToday[] }) {
   const [uploadedHere, setUploadedHere] = useState(0);
@@ -48,7 +57,7 @@ function SpotCard({ token, spot, onUploaded }: { token: string; spot: SpotToday;
         const qs = new URLSearchParams({ token, photoId: pendingPhotoId! });
         const body = (await (await fetch(`/api/finding?${qs}`)).json()) as FindingResponse;
         if (body.ok && body.note) {
-          setState((s) => (s.kind === "done" ? { ...s, note: body.note } : s));
+          setState((s) => (s.kind === "done" ? { ...s, note: body.note, status: body.status } : s));
           return;
         }
       } catch {
@@ -87,10 +96,36 @@ function SpotCard({ token, spot, onUploaded }: { token: string; spot: SpotToday;
         setState({ kind: "error", message: body.error });
         return;
       }
-      setState({ kind: "done", photoId: body.photoId, blobUrl: body.blobUrl, capturedAt: body.capturedAt, note: null });
+      setState({
+        kind: "done",
+        photoId: body.photoId,
+        blobUrl: body.blobUrl,
+        capturedAt: body.capturedAt,
+        note: null,
+        status: null,
+      });
       onUploaded();
     } catch {
       setState({ kind: "error", message: "Upload failed. Check your connection and try again." });
+    }
+  }
+
+  // Re-run Claude's check on this photo when the last attempt failed (no retake needed).
+  async function recheck(photoId: string) {
+    setState((s) => (s.kind === "done" ? { ...s, rechecking: true } : s));
+    try {
+      const res = await fetch("/api/recheck", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, photoId }),
+      });
+      const body = (await res.json().catch(() => null)) as RecheckResponse | null;
+      const result = body?.ok ? body.results.find((r) => r.photoId === photoId) : undefined;
+      setState((s) =>
+        s.kind === "done" ? { ...s, rechecking: false, ...(result && { note: result.note, status: result.status }) } : s,
+      );
+    } catch {
+      setState((s) => (s.kind === "done" ? { ...s, rechecking: false } : s));
     }
   }
 
@@ -107,8 +142,22 @@ function SpotCard({ token, spot, onUploaded }: { token: string; spot: SpotToday;
           <img src={state.blobUrl} alt={`${spot.label} today`} className="aspect-[4/3] w-full object-cover" />
           <div className="flex items-center justify-between gap-2 p-4 text-sm">
             <span className="tabular-nums text-zinc-600 dark:text-zinc-400">{state.capturedAt}</span>
-            <span className="text-right font-medium">{state.note ?? "Checking…"}</span>
+            <span className="text-right font-medium">
+              {state.rechecking ? "Checking again…" : (state.note ?? "Checking…")}
+            </span>
           </div>
+          {state.status === "error" && (
+            <div className="px-4 pb-4">
+              <button
+                type="button"
+                disabled={state.rechecking}
+                onClick={() => recheck(state.photoId)}
+                className="h-10 w-full rounded-xl border border-zinc-300 text-sm font-medium disabled:opacity-60 dark:border-zinc-700"
+              >
+                Check again
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-2 p-4 pt-0">

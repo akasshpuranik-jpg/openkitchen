@@ -151,14 +151,35 @@ export async function saveFinding(photoId: string, f: Finding) {
             ${f.confidence.toFixed(2)}, ${f.note}, ${f.model})`;
 }
 
-// Latest finding note for a photo, scoped to the restaurant that owns the upload token.
-export async function getFindingNote(restaurantId: string, photoId: string): Promise<string | null> {
+// Latest finding for a photo, scoped to the restaurant that owns the upload token.
+export async function getLatestFinding(
+  restaurantId: string,
+  photoId: string,
+): Promise<{ note: string; status: FindingStatus } | null> {
   const rows = await db()`
-    SELECT f.note FROM findings f
+    SELECT f.note, f.status FROM findings f
     JOIN photos p ON p.id = f.photo_id
     WHERE f.photo_id = ${photoId}::uuid AND p.restaurant_id = ${restaurantId}
     ORDER BY f.created_at DESC LIMIT 1`;
-  return (rows[0]?.note as string | undefined) ?? null;
+  return (rows[0] as { note: string; status: FindingStatus } | undefined) ?? null;
+}
+
+// Today's photos (India time) whose check failed, or that never got a finding at all
+// (older than 2 minutes, so a check still running in after() isn't doubled up).
+export async function getTodayPhotosToRecheck(restaurantId: string, photoId?: string) {
+  const rows = await db()`
+    SELECT p.id, p.blob_url, s.label, s.checklist
+    FROM photos p
+    JOIN spots s ON s.id = p.spot_id
+    LEFT JOIN LATERAL (
+      SELECT status FROM findings WHERE photo_id = p.id ORDER BY created_at DESC LIMIT 1
+    ) f ON true
+    WHERE p.restaurant_id = ${restaurantId}
+      AND (p.captured_at AT TIME ZONE ${KITCHEN_TZ})::date = (now() AT TIME ZONE ${KITCHEN_TZ})::date
+      AND (f.status = 'error' OR (f.status IS NULL AND p.captured_at < now() - interval '2 minutes'))
+      AND (${photoId ?? null}::uuid IS NULL OR p.id = ${photoId ?? null}::uuid)
+    ORDER BY array_position(${SPOT_ORDER}::text[], s.key)`;
+  return rows as { id: string; blob_url: string; label: string; checklist: string }[];
 }
 
 // Times are formatted on the server, in India time, so every viewer sees kitchen time.

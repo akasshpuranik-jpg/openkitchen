@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
+import type { Finding } from "@/lib/photo-check";
 
 // A kitchen "day" is the calendar day in India time, matching the photos_one_per_spot_per_day index.
 export const KITCHEN_TZ = "Asia/Kolkata";
@@ -46,6 +47,23 @@ export async function getSpotsToday(restaurantId: string): Promise<SpotToday[]> 
       ? { id: r.photo_id, blobUrl: r.blob_url, capturedAt: formatKitchenTime(r.captured_at), note: r.note }
       : null,
   }));
+}
+
+export async function saveFinding(photoId: string, f: Finding) {
+  await db()`
+    INSERT INTO findings (photo_id, spot_match, status, issues, confidence, note, model)
+    VALUES (${photoId}, ${f.spot_match}, ${f.status}, ${JSON.stringify(f.issues)}::jsonb,
+            ${f.confidence.toFixed(2)}, ${f.note}, ${f.model})`;
+}
+
+// Latest finding note for a photo, scoped to the restaurant that owns the upload token.
+export async function getFindingNote(restaurantId: string, photoId: string): Promise<string | null> {
+  const rows = await db()`
+    SELECT f.note FROM findings f
+    JOIN photos p ON p.id = f.photo_id
+    WHERE f.photo_id = ${photoId}::uuid AND p.restaurant_id = ${restaurantId}
+    ORDER BY f.created_at DESC LIMIT 1`;
+  return (rows[0]?.note as string | undefined) ?? null;
 }
 
 // Formatted on the server so the page and the API show the same string.

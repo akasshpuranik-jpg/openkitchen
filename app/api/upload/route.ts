@@ -1,10 +1,14 @@
+import { after } from "next/server";
 import { del, put } from "@vercel/blob";
-import sharp from "sharp";
 import { db } from "@/lib/db";
-import { KITCHEN_TZ, formatKitchenTime, getRestaurantByUploadToken } from "@/lib/kitchen";
+import { normalizeJpeg } from "@/lib/image";
+import { KITCHEN_TZ, formatKitchenTime, getRestaurantByUploadToken, saveFinding } from "@/lib/kitchen";
+import { runPhotoCheck } from "@/lib/photo-check";
+
+// Covers the Claude check that runs in after() once the response is sent.
+export const maxDuration = 60;
 
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024; // under Vercel's 4.5 MB request body limit
-const MAX_EDGE_PX = 1600;
 
 export type UploadResponse =
   | { ok: true; photoId: string; blobUrl: string; capturedAt: string }
@@ -29,8 +33,8 @@ export async function POST(request: Request) {
   if (!restaurant) return fail(404, "Upload link not found.");
 
   const spots = await db()`
-    SELECT key FROM spots WHERE id = ${spotId}::uuid AND restaurant_id = ${restaurant.id}`.catch(() => []);
-  const spot = spots[0] as { key: string } | undefined;
+    SELECT key, label, checklist FROM spots WHERE id = ${spotId}::uuid AND restaurant_id = ${restaurant.id}`.catch(() => []);
+  const spot = spots[0] as { key: string; label: string; checklist: string } | undefined;
   if (!spot) return fail(404, "Spot not found.");
 
   // Fast path for the UI; the unique index below is the real guard.
@@ -44,11 +48,7 @@ export async function POST(request: Request) {
 
   let jpeg: Buffer;
   try {
-    jpeg = await sharp(Buffer.from(await file.arrayBuffer()))
-      .rotate()
-      .resize(MAX_EDGE_PX, MAX_EDGE_PX, { fit: "inside", withoutEnlargement: true })
-      .jpeg({ quality: 80 })
-      .toBuffer();
+    jpeg = await normalizeJpeg(Buffer.from(await file.arrayBuffer()));
   } catch {
     return fail(415, "That file isn't a readable image.");
   }
@@ -64,6 +64,13 @@ export async function POST(request: Request) {
       INSERT INTO photos (restaurant_id, spot_id, blob_url)
       VALUES (${restaurant.id}, ${spotId}, ${blob.url})
       RETURNING id, captured_at`;
+
+    // The card shows "Checking…" and polls /api/finding until this lands.
+    after(async () => {
+      const { finding } = await runPhotoCheck({ jpeg, spotLabel: spot.label, checklist: spot.checklist });
+      await saveFinding(photo.id, finding).catch((err) => console.error("saving finding failed:", err));
+    });
+
     return Response.json({
       ok: true,
       photoId: photo.id,

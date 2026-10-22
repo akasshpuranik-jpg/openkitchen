@@ -1,15 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { SpotToday } from "@/lib/kitchen";
 import type { UploadResponse } from "@/app/api/upload/route";
+import type { FindingResponse } from "@/app/api/finding/route";
 import { compressImage } from "@/lib/compress-image";
+
+const POLL_MS = 2000;
+const POLL_GIVE_UP_MS = 90_000;
 
 type CardState =
   | { kind: "empty" }
   | { kind: "uploading" }
   | { kind: "error"; message: string }
-  | { kind: "done"; blobUrl: string; capturedAt: string; note: string | null };
+  | { kind: "done"; photoId: string; blobUrl: string; capturedAt: string; note: string | null };
 
 export function SpotCards({ token, spots }: { token: string; spots: SpotToday[] }) {
   const done = spots.filter((s) => s.photo).length;
@@ -29,8 +33,31 @@ export function SpotCards({ token, spots }: { token: string; spots: SpotToday[] 
 
 function SpotCard({ token, spot }: { token: string; spot: SpotToday }) {
   const [state, setState] = useState<CardState>(
-    spot.photo ? { kind: "done", ...spot.photo } : { kind: "empty" },
+    spot.photo ? { kind: "done", photoId: spot.photo.id, ...spot.photo } : { kind: "empty" },
   );
+
+  // While "Checking…", poll until the server has saved Claude's finding.
+  const pendingPhotoId = state.kind === "done" && state.note === null ? state.photoId : null;
+  useEffect(() => {
+    if (!pendingPhotoId) return;
+    const started = Date.now();
+    let timer: ReturnType<typeof setTimeout>;
+    async function poll() {
+      try {
+        const qs = new URLSearchParams({ token, photoId: pendingPhotoId! });
+        const body = (await (await fetch(`/api/finding?${qs}`)).json()) as FindingResponse;
+        if (body.ok && body.note) {
+          setState((s) => (s.kind === "done" ? { ...s, note: body.note } : s));
+          return;
+        }
+      } catch {
+        // Network blip; try again on the next tick.
+      }
+      if (Date.now() - started < POLL_GIVE_UP_MS) timer = setTimeout(poll, POLL_MS);
+    }
+    timer = setTimeout(poll, POLL_MS);
+    return () => clearTimeout(timer);
+  }, [pendingPhotoId, token]);
 
   async function onFile(file: File | undefined) {
     if (!file) return;
@@ -47,7 +74,7 @@ function SpotCard({ token, spot }: { token: string; spot: SpotToday }) {
         setState({ kind: "error", message: body.error });
         return;
       }
-      setState({ kind: "done", blobUrl: body.blobUrl, capturedAt: body.capturedAt, note: null });
+      setState({ kind: "done", photoId: body.photoId, blobUrl: body.blobUrl, capturedAt: body.capturedAt, note: null });
     } catch {
       setState({ kind: "error", message: "Upload failed. Check your connection and try again." });
     }
@@ -66,7 +93,7 @@ function SpotCard({ token, spot }: { token: string; spot: SpotToday }) {
           <img src={state.blobUrl} alt={`${spot.label} today`} className="aspect-[4/3] w-full object-cover" />
           <div className="flex items-center justify-between gap-2 p-4 text-sm">
             <span className="tabular-nums text-zinc-600 dark:text-zinc-400">{state.capturedAt}</span>
-            <span className="font-medium">{state.note ?? "Checking…"}</span>
+            <span className="text-right font-medium">{state.note ?? "Checking…"}</span>
           </div>
         </div>
       ) : (

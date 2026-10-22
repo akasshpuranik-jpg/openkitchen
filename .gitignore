@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# sample photos for npm run check:photos
+/test-images/*
+!/test-images/README.md

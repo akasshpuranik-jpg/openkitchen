@@ -41,6 +41,7 @@ Anything that doesn't serve this journey is out of scope.
 - Next.js 16 with Cache Components: see AGENTS.md; per-request DB reads go inside `<Suspense>`.
 - Staff upload: `/upload/[token]` → `POST /api/upload` (sharp re-encode strips EXIF → public Blob → insert). Bad tokens 404 in `proxy.ts`.
 - One photo per spot per India-time day, enforced by a unique index; the UI and API only pre-check it.
+- Photo check: `lib/photo-check.ts` (Claude call in `after()`, zod-validated, notes from fixed templates). Tune with `npm run check:photos` on `test-images/`.
 
 ## Data & access
 - Exactly one seeded, real restaurant (no fake data). Seed it via a script/migration.

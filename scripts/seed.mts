@@ -3,6 +3,7 @@
 import { randomBytes } from "node:crypto";
 import { parseArgs } from "node:util";
 import { neon } from "@neondatabase/serverless";
+import { SPOTS } from "../lib/spots.ts";
 
 const url = process.env.POSTGRES_URL;
 if (!url) throw new Error("POSTGRES_URL is not set. Run `vercel env pull .env.local` first.");
@@ -24,29 +25,6 @@ const slug =
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-
-const SPOTS = [
-  {
-    key: "prep_counter",
-    label: "Prep counter",
-    checklist: "Surface wiped and dry; no food scraps or spills; raw and cooked food kept apart; cutting boards clean; no pests.",
-  },
-  {
-    key: "stove",
-    label: "Stove",
-    checklist: "No grease buildup on burners, hood or wall; no burnt residue; area around the stove clear; no pests.",
-  },
-  {
-    key: "fridge",
-    label: "Fridge",
-    checklist: "All containers covered; no spills or pooled liquid; no visible spoilage or mould; raw meat stored below cooked food.",
-  },
-  {
-    key: "wash_area",
-    label: "Wash area",
-    checklist: "Sink free of piled dirty dishes; soap present; drain clear; no standing water on the floor; no pests.",
-  },
-] as const;
 
 const sql = neon(url);
 

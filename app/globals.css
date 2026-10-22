@@ -56,11 +56,116 @@ body {
   }
 }
 
+@keyframes motion-draw-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes motion-draw-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes motion-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@keyframes motion-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
 @layer components {
-  /* Entrance: fade in and rise 8px. Lists set style={{ "--i": index }} to stagger. */
+  /* Entrance: fade in and rise 8px. Lists set style={{ "--i": index }} to stagger;
+     --d adds a fixed extra delay (e.g. the hero's 100ms steps). "backwards" holds the
+     start state during the delay, then hands control back to normal styles. */
   .motion-enter {
-    animation: motion-enter var(--motion-enter) var(--motion-ease) both;
-    animation-delay: calc(var(--i, 0) * var(--motion-stagger));
+    animation: motion-enter var(--motion-enter) var(--motion-ease) backwards;
+    animation-delay: calc(var(--i, 0) * var(--motion-stagger) + var(--d, 0ms));
+  }
+
+  /* Fade only, same delay rules (e.g. a row's status chip just after its row). */
+  .motion-fade {
+    animation: motion-fade var(--motion-ui) var(--motion-ease) backwards;
+    animation-delay: calc(var(--i, 0) * var(--motion-stagger) + var(--d, 0ms));
+  }
+
+  /* Small icon that pops in once (the green check on a 4/4 row). */
+  .motion-pop {
+    animation: motion-pop var(--motion-ui) var(--motion-ease) backwards;
+    animation-delay: calc(var(--i, 0) * var(--motion-stagger) + var(--d, 0ms));
+  }
+
+  /* Slow, gentle attention pulse (the red "no photos today" dot). */
+  .motion-pulse {
+    animation: motion-pulse 2s ease-in-out infinite;
+  }
+
+  /* Scroll reveal: .motion-reveal-pending hides an item until JS adds .is-revealed.
+     The pending class is only ever added by JS, so without JS everything stays visible. */
+  .motion-reveal-pending {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .motion-reveal-pending.is-revealed {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity var(--motion-enter) var(--motion-ease),
+      transform var(--motion-enter) var(--motion-ease);
+    transition-delay: var(--d, 0ms);
+  }
+
+  /* Connector line between steps, drawn with scale (transform only). */
+  .motion-line {
+    transform-origin: top left;
+    transform: scaleY(0);
+    transition: transform var(--motion-enter) var(--motion-ease);
+    transition-delay: var(--d, 0ms);
+  }
+  .is-revealed > .motion-line {
+    transform: none;
+  }
+  @media (min-width: 40rem) {
+    .motion-line {
+      transform: scaleX(0);
+    }
+  }
+
+  /* Rows in a filterable list fade/settle both ways: out when they stop matching
+     (.motion-leaving), and back in if they match again before they're removed. */
+  .motion-row {
+    transition:
+      opacity var(--motion-ui) var(--motion-ease),
+      transform var(--motion-ui) var(--motion-ease);
+  }
+  .motion-leaving {
+    opacity: 0;
+    transform: scale(0.98);
+    pointer-events: none;
+  }
+
+  /* Header backdrop: the translucent fill, blur and hairline live on a separate layer
+     (styled with Tailwind's backdrop utilities in ScrollHeader) whose opacity fades in
+     once the page is scrolled. data-scrolled is set by ScrollHeader. */
+  .motion-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    isolation: isolate;
+  }
+  .motion-header-backdrop {
+    opacity: 0;
+    transition: opacity var(--motion-ui) var(--motion-ease);
+  }
+  .motion-header[data-scrolled] > .motion-header-backdrop {
+    opacity: 1;
   }
 
   /* Buttons, cards and boxed links: lift 2px with a soft shadow on hover, 0.98 on press.
@@ -103,7 +208,7 @@ body {
 
   /* Short opacity change for UI state swaps (e.g. "Checking…" → a note). */
   .motion-swap {
-    animation: motion-fade var(--motion-ui) var(--motion-ease) both;
+    animation: motion-fade var(--motion-ui) var(--motion-ease) backwards;
   }
 }
 
@@ -115,8 +220,34 @@ body {
     --motion-enter: 120ms;
     --motion-stagger: 0ms;
   }
-  .motion-enter {
+  .motion-enter,
+  .motion-pop {
     animation-name: motion-fade;
+  }
+  .motion-enter,
+  .motion-fade,
+  .motion-pop,
+  .motion-reveal-pending.is-revealed,
+  .motion-line {
+    animation-delay: 0ms;
+    transition-delay: 0ms;
+  }
+  .motion-pulse {
+    animation: none;
+  }
+  .motion-reveal-pending,
+  .motion-leaving {
+    transform: none;
+  }
+  /* The connector line just fades in instead of drawing. */
+  .motion-line,
+  .is-revealed > .motion-line {
+    transform: none;
+    opacity: 0;
+    transition: opacity var(--motion-ui) linear;
+  }
+  .is-revealed > .motion-line {
+    opacity: 1;
   }
   .motion-lift:hover,
   .motion-link:hover,

@@ -2,8 +2,9 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { getKitchenList } from "@/lib/kitchen";
-import { stagger } from "@/lib/motion";
+import { delay } from "@/lib/motion";
 import { KitchenRows } from "./_components/kitchen-rows";
+import { StepsReveal } from "./_components/steps-reveal";
 
 const STEPS = [
   { title: "Staff photograph 4 set spots", body: "Every day, kitchen staff photograph the prep counter, stove, fridge and wash area." },
@@ -14,31 +15,34 @@ const STEPS = [
 export default function Home() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-12 px-4 py-10 sm:py-16">
+      {/* Hero sequence: headline, then subline 100ms later, then the buttons. */}
       <section className="flex flex-col gap-4">
-        <h1 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+        <h1 className="motion-enter text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
           See today&apos;s kitchen before you order
         </h1>
-        <p className="max-w-xl text-zinc-600 dark:text-zinc-400">
+        <p style={delay(100)} className="motion-enter max-w-xl text-zinc-600 dark:text-zinc-400">
           Restaurants post time-stamped photos of their kitchen every day, so you can check it before you order on
           Zomato or Swiggy.
         </p>
+        <div style={delay(200)} className="motion-enter mt-2 flex flex-wrap gap-3">
+          <Link
+            href="/kitchens"
+            className="motion-lift inline-flex h-11 items-center rounded-xl bg-zinc-900 px-5 font-medium text-white dark:bg-white dark:text-zinc-900"
+          >
+            Browse kitchens
+          </Link>
+          <Link
+            href="#how-it-works"
+            className="motion-lift inline-flex h-11 items-center rounded-xl border border-zinc-300 px-5 font-medium dark:border-zinc-700"
+          >
+            How it works
+          </Link>
+        </div>
       </section>
 
       <section id="how-it-works" className="flex scroll-mt-6 flex-col gap-4">
         <h2 className="text-lg font-semibold">How it works</h2>
-        <ol className="grid gap-3 sm:grid-cols-3">
-          {STEPS.map((step, i) => (
-            <li
-              key={step.title}
-              style={stagger(i)}
-              className="motion-enter motion-lift flex flex-col gap-1 rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800"
-            >
-              <span className="text-xs font-medium text-zinc-500">Step {i + 1}</span>
-              <span className="font-medium">{step.title}</span>
-              <span className="text-sm text-zinc-600 dark:text-zinc-400">{step.body}</span>
-            </li>
-          ))}
-        </ol>
+        <StepsReveal steps={STEPS} />
       </section>
 
       <section className="flex flex-col gap-4">

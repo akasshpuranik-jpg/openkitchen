@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ScrollHeader } from "./scroll-header";
 
 // Public navigation. The staff upload page is deliberately not linked from here.
 const NAV = [
@@ -9,7 +10,7 @@ const NAV = [
 
 export function SiteHeader() {
   return (
-    <header className="border-b border-zinc-200 dark:border-zinc-800">
+    <ScrollHeader>
       <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3">
         <Link href="/" className="motion-link flex items-center gap-2 font-semibold tracking-tight">
           <Logo />
@@ -27,7 +28,7 @@ export function SiteHeader() {
           ))}
         </nav>
       </div>
-    </header>
+    </ScrollHeader>
   );
 }
 

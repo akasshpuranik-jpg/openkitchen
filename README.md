@@ -52,7 +52,6 @@ Not built, by design, for this MVP:
 - Logins and restaurant self-signup — there is one seeded, real restaurant
 - Diner reports with a photo
 - Owner dispute flow and moderator queue
-- 11:00 reminder to staff (n8n, WhatsApp or email)
 - Follow-up "fixed" photos beside a flag
 - Link or badge on Zomato/Swiggy listings; QR code at the restaurant
 - 30-day hygiene trend score
@@ -70,7 +69,8 @@ Needs Node 22.18+ (the scripts run TypeScript directly), a GitHub account, a Ver
 3. **Add storage** in the Vercel project's **Storage** tab, connecting each to all environments:
    - **Neon** (Postgres) via the Marketplace — adds `POSTGRES_URL`.
    - **Blob** — choose **Public** access — adds `BLOB_READ_WRITE_TOKEN`.
-4. **Add `ANTHROPIC_API_KEY`** under Settings → Environment Variables, then redeploy.
+4. **Add `ANTHROPIC_API_KEY`** under Settings → Environment Variables (and `REMINDER_SECRET` if you use the
+   reminder below), then redeploy.
 5. **Pull env vars and set up the database** locally:
    ```bash
    npm install
@@ -87,6 +87,12 @@ To tune the Claude prompt without uploading, put photos named after their spot (
 
 Preview deployments are behind Vercel login by default; sign in on the phone, or relax Deployment Protection while
 demoing.
+
+## 11:00 reminder (optional)
+
+`GET /api/missing-today` with `Authorization: Bearer <REMINDER_SECRET>` returns, per restaurant, the spots with no
+photo yet today (India time) and a ready-to-send `message`. An n8n schedule calls it at 11:00 IST and sends the message
+by WhatsApp or email. It returns 401 without the right secret and 503 if `REMINDER_SECRET` isn't set.
 
 ## Known edge cases
 

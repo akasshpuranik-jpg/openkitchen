@@ -16,7 +16,6 @@ Anything that doesn't serve this journey is out of scope.
 - Diner reports with a photo
 - Owner dispute flow and moderator queue
 - Logins and restaurant self-signup
-- n8n 11:00 reminder by WhatsApp/email (stretch only if explicitly asked)
 - Follow-up "fixed" photos beside a flag
 - Link/badge on Zomato/Swiggy listings; QR code at the restaurant
 - 30-day hygiene trend score
@@ -41,6 +40,7 @@ Anything that doesn't serve this journey is out of scope.
 - Next.js 16 with Cache Components: see AGENTS.md; per-request DB reads go inside `<Suspense>`.
 - Staff upload: `/upload/[token]` → `POST /api/upload` (sharp re-encode strips EXIF → public Blob → insert). Bad tokens 404 in `proxy.ts`.
 - One photo per spot per India-time day, enforced by a unique index; the UI and API only pre-check it.
+- 11:00 reminder (stretch, built): `GET /api/missing-today` with `Authorization: Bearer $REMINDER_SECRET`; n8n sends the WhatsApp/email.
 - Photo check: `lib/photo-check.ts` (Claude call in `after()`, zod-validated, notes from fixed templates). Tune with `npm run check:photos` on `test-images/`.
 
 ## Data & access

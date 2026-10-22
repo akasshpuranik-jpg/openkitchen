@@ -78,6 +78,33 @@ export async function getRestaurantBySlug(slug: string): Promise<Restaurant | nu
   return (rows[0] as Restaurant | undefined) ?? null;
 }
 
+export type MissingToday = {
+  date: string; // YYYY-MM-DD, India time
+  restaurants: { name: string; area: string; slug: string; missing: { key: string; label: string }[]; total: number }[];
+};
+
+// Which spots have no photo yet today (India time), per restaurant. Used by the 11:00 reminder.
+export async function getMissingToday(): Promise<MissingToday> {
+  const rows = await db()`
+    SELECT (now() AT TIME ZONE ${KITCHEN_TZ})::date::text AS today,
+           r.name, r.area, r.slug, s.key, s.label, p.id IS NOT NULL AS posted
+    FROM restaurants r
+    JOIN spots s ON s.restaurant_id = r.id
+    LEFT JOIN photos p
+      ON p.spot_id = s.id
+     AND (p.captured_at AT TIME ZONE ${KITCHEN_TZ})::date = (now() AT TIME ZONE ${KITCHEN_TZ})::date
+    ORDER BY r.created_at, r.slug, array_position(${SPOT_ORDER}::text[], s.key)`;
+
+  const bySlug = new Map<string, MissingToday["restaurants"][number]>();
+  for (const r of rows) {
+    const entry: MissingToday["restaurants"][number] = bySlug.get(r.slug) ?? { name: r.name, area: r.area, slug: r.slug, missing: [], total: 0 };
+    entry.total += 1;
+    if (!r.posted) entry.missing.push({ key: r.key, label: r.label });
+    bySlug.set(r.slug, entry);
+  }
+  return { date: rows[0]?.today ?? "", restaurants: [...bySlug.values()] };
+}
+
 // The demo restaurant for the landing page: the MVP seeds exactly one.
 export async function getDemoRestaurant(): Promise<Pick<Restaurant, "name" | "area" | "slug"> | null> {
   const rows = await db()`SELECT name, area, slug FROM restaurants ORDER BY created_at LIMIT 1`;

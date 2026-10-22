@@ -34,7 +34,7 @@ export default async function UploadPage({ params }: PageProps<"/upload/[token]"
           See what diners see →
         </Link>
       </header>
-      <SpotCards token={token} spots={spots} />
+      <SpotCards token={token} spots={spots} publicPath={`/r/${restaurant.slug}`} />
     </main>
   );
 }

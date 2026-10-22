@@ -2,7 +2,7 @@ import { after } from "next/server";
 import { del, put } from "@vercel/blob";
 import { db } from "@/lib/db";
 import { normalizeJpeg } from "@/lib/image";
-import { KITCHEN_TZ, formatKitchenTime, getRestaurantByUploadToken, saveFinding } from "@/lib/kitchen";
+import { KITCHEN_TZ, formatKitchenTime, formatPostedTime, getRestaurantByUploadToken, saveFinding } from "@/lib/kitchen";
 import { runPhotoCheck } from "@/lib/photo-check";
 
 // Covers the Claude check that runs in after() once the response is sent.
@@ -11,7 +11,7 @@ export const maxDuration = 60;
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024; // under Vercel's 4.5 MB request body limit
 
 export type UploadResponse =
-  | { ok: true; photoId: string; blobUrl: string; capturedAt: string }
+  | { ok: true; photoId: string; blobUrl: string; capturedAt: string; postedTime: string }
   | { ok: false; error: string };
 
 function fail(status: number, error: string) {
@@ -76,6 +76,7 @@ export async function POST(request: Request) {
       photoId: photo.id,
       blobUrl: blob.url,
       capturedAt: formatKitchenTime(photo.captured_at),
+      postedTime: formatPostedTime(photo.captured_at),
     } satisfies UploadResponse);
   } catch (err) {
     // No row points at this blob, so removing it keeps storage tidy; photo rows are never touched.

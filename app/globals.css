@@ -81,7 +81,74 @@ body {
   }
 }
 
+/* Staff upload page: the AI check. */
+@keyframes motion-scan {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(300%);
+  }
+}
+
+@keyframes motion-shake {
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes motion-flash {
+  30% {
+    opacity: 1;
+  }
+}
+
+@keyframes motion-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+}
+
 @layer components {
+  /* A soft light band sweeping top to bottom over a photo while Claude checks it. */
+  .motion-scan {
+    animation: motion-scan 1.8s ease-in-out infinite;
+  }
+
+  /* One gentle shake when a check or upload fails. */
+  .motion-shake {
+    animation: motion-shake var(--motion-enter) var(--motion-ease);
+  }
+
+  /* One red outline flash around a photo with issues (opacity only). */
+  .motion-flash {
+    opacity: 0;
+    animation: motion-flash 900ms var(--motion-ease);
+  }
+
+  /* Status chip and note lines arriving with a verdict. */
+  .motion-slide-in {
+    animation: motion-slide-in var(--motion-ui) var(--motion-ease) backwards;
+    animation-delay: calc(var(--i, 0) * var(--motion-stagger) + var(--d, 0ms));
+  }
+
+  /* Progress bars fill with scaleX (set --progress from 0 to 1). */
+  .motion-progress {
+    transform-origin: left;
+    transform: scaleX(var(--progress, 0));
+    transition: transform var(--motion-enter) var(--motion-ease);
+  }
+
   /* Entrance: fade in and rise 8px. Lists set style={{ "--i": index }} to stagger;
      --d adds a fixed extra delay (e.g. the hero's 100ms steps). "backwards" holds the
      start state during the delay, then hands control back to normal styles. */
@@ -232,8 +299,21 @@ body {
     animation-delay: 0ms;
     transition-delay: 0ms;
   }
-  .motion-pulse {
+  .motion-pulse,
+  .motion-scan,
+  .motion-shake {
     animation: none;
+  }
+  /* No sweeping band; the "Claude is checking the photo…" label still shows. */
+  .motion-scan {
+    opacity: 0;
+  }
+  .motion-slide-in {
+    animation-name: motion-fade;
+    animation-delay: 0ms;
+  }
+  .motion-progress {
+    transition-duration: 0ms;
   }
   .motion-reveal-pending,
   .motion-leaving {

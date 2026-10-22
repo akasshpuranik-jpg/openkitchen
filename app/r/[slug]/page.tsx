@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatKitchenToday, getLast7Days, getRestaurantBySlug, getSpotsToday } from "@/lib/kitchen";
 import { DinerView } from "./diner-view";
+import { LiveRefresh } from "./live-refresh";
 import { ShareButton } from "./share-button";
 
 export default function RestaurantPage({ params }: PageProps<"/r/[slug]">) {
@@ -17,6 +18,7 @@ export default function RestaurantPage({ params }: PageProps<"/r/[slug]">) {
       <Suspense fallback={<p className="text-zinc-500">Loading today&apos;s kitchen…</p>}>
         <DinerPage params={params} />
       </Suspense>
+      <LiveRefresh />
     </main>
   );
 }

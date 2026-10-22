@@ -119,7 +119,80 @@ body {
   }
 }
 
+/* Diner page. */
+@keyframes motion-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes motion-attention {
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes motion-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
 @layer components {
+  /* Today's banner drops into place first. */
+  .motion-slide-down {
+    animation: motion-slide-down var(--motion-enter) var(--motion-ease) backwards;
+  }
+  /* Missed-day banner: the same drop-in, then one gentle attention pulse, then still. */
+  .motion-slide-down-attention {
+    animation:
+      motion-slide-down var(--motion-enter) var(--motion-ease) backwards,
+      motion-attention 700ms ease-in-out calc(var(--motion-enter) + 150ms) 1;
+  }
+
+  /* Loading placeholder in a photo's 4:3 box: a soft band drifting across. */
+  .motion-shimmer {
+    animation: motion-shimmer 1.4s ease-in-out infinite;
+  }
+
+  /* A photo fades in once it has loaded (data-loaded set by the image's onLoad). */
+  .motion-img {
+    opacity: 0;
+    transition: opacity var(--motion-enter) var(--motion-ease);
+  }
+  .motion-img[data-loaded] {
+    opacity: 1;
+  }
+  /* The shimmer sits after the image; once the image has loaded it fades and stops. */
+  .motion-shimmer-layer {
+    transition: opacity var(--motion-enter) var(--motion-ease);
+  }
+  .motion-img[data-loaded] ~ .motion-shimmer-layer {
+    opacity: 0;
+  }
+  .motion-img[data-loaded] ~ .motion-shimmer-layer .motion-shimmer {
+    animation: none;
+  }
+
+  /* 7-day grid: cells wait hidden until the grid scrolls into view, then fill
+     left to right (--i is the day column, oldest first). Added only by JS. */
+  .motion-cells-pending .motion-cell {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  .motion-cells-pending.is-revealed .motion-cell {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity var(--motion-ui) var(--motion-ease),
+      transform var(--motion-ui) var(--motion-ease);
+    transition-delay: calc(var(--i, 0) * var(--motion-stagger));
+  }
+
   /* A soft light band sweeping top to bottom over a photo while Claude checks it. */
   .motion-scan {
     animation: motion-scan 1.8s ease-in-out infinite;
@@ -301,8 +374,19 @@ body {
   }
   .motion-pulse,
   .motion-scan,
-  .motion-shake {
+  .motion-shake,
+  .motion-shimmer {
     animation: none;
+  }
+  .motion-slide-down,
+  .motion-slide-down-attention {
+    animation: motion-fade var(--motion-ui) linear backwards;
+  }
+  .motion-cells-pending .motion-cell {
+    transform: none;
+  }
+  .motion-cells-pending.is-revealed .motion-cell {
+    transition-delay: 0ms;
   }
   /* No sweeping band; the "Claude is checking the photo…" label still shows. */
   .motion-scan {

@@ -1,8 +1,11 @@
 import type { DayRow, DayState, FindingStatus, Restaurant, SpotToday } from "@/lib/kitchen";
-import { formatKitchenDay } from "@/lib/kitchen";
-import { stagger } from "@/lib/motion";
+import { KITCHEN_TZ } from "@/lib/kitchen";
+import type { CardVM, HistoryVM } from "./diner-types";
+import { History } from "./history";
+import { SpotGrid } from "./spot-grid";
 
-// Pure view: all data, times and notes are computed on the server before this renders.
+// Server side of the diner page: turns today's data into plain view data (chips, note
+// lines, the 7-day grid) for the client components that animate it.
 export function DinerView({
   restaurant,
   todayLabel,
@@ -26,60 +29,25 @@ export function DinerView({
         </p>
       </header>
 
-      {missing.length > 0 && (
-        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+      {/* Today's banner drops in first; a missed day gets one gentle pulse, then stays still. */}
+      {missing.length > 0 ? (
+        <div
+          role="alert"
+          className="motion-slide-down-attention rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+        >
           Kitchen hasn&apos;t posted the {listSpots(missing)} today
         </div>
+      ) : (
+        <div className="motion-slide-down rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-900 dark:border-green-900 dark:bg-green-950 dark:text-green-200">
+          Kitchen posted all {spots.length} spots today
+        </div>
       )}
 
-      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {spots.map((spot, i) => (
-          <SpotCard key={spot.spotId} spot={spot} index={i} />
-        ))}
-      </ul>
+      <SpotGrid cards={spots.map(toCard)} />
 
-      {days.length > 0 && <History days={days} />}
-
+      {days.length > 0 && <History data={toHistory(days)} />}
     </div>
   );
-}
-
-function SpotCard({ spot, index }: { spot: SpotToday; index: number }) {
-  const photo = spot.photo;
-  // No overflow-hidden here: it would clip the hover shadow, so the photo rounds its own corners.
-  return (
-    <li style={stagger(index)} className="motion-enter motion-lift flex flex-col rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-      {photo ? (
-        // eslint-disable-next-line @next/next/no-img-element -- Blob URL, already 1600px
-        <img src={photo.blobUrl} alt={`${spot.label}, today`} loading="lazy" className="aspect-[4/3] w-full rounded-t-[calc(1rem-1px)] bg-zinc-100 object-cover dark:bg-zinc-900" />
-      ) : (
-        <div className="flex aspect-[4/3] w-full items-center justify-center rounded-t-[calc(1rem-1px)] bg-zinc-100 text-sm text-zinc-500 dark:bg-zinc-900">
-          No photo yet today
-        </div>
-      )}
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="font-semibold">{spot.label}</h2>
-          {photo && <StatusChip status={photo.status} />}
-        </div>
-        {photo ? (
-          <>
-            <p className="text-sm text-zinc-900 dark:text-zinc-100">{dinerNote(photo)}</p>
-            <p className="text-xs tabular-nums text-zinc-500">Posted {photo.postedTime}</p>
-          </>
-        ) : (
-          <p className="text-sm text-red-700 dark:text-red-300">Not posted today</p>
-        )}
-      </div>
-    </li>
-  );
-}
-
-// Diners see a neutral line while the automatic check hasn't run (staff still see the
-// failure and a "Check again" button on the upload page). Never shown as "no issues".
-function dinerNote(photo: NonNullable<SpotToday["photo"]>) {
-  if (photo.status === "error" || photo.note === null) return "Photo posted · automatic check pending";
-  return photo.note;
 }
 
 const CHIP: Record<FindingStatus | "checking", { label: string; className: string }> = {
@@ -90,68 +58,55 @@ const CHIP: Record<FindingStatus | "checking", { label: string; className: strin
   error: { label: "Check pending", className: "bg-zinc-100 text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400" },
 };
 
-function StatusChip({ status }: { status: FindingStatus | null }) {
-  const chip = CHIP[status ?? "checking"];
-  return <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${chip.className}`}>{chip.label}</span>;
+function toCard(spot: SpotToday): CardVM {
+  const p = spot.photo;
+  return {
+    spotId: spot.spotId,
+    label: spot.label,
+    photo: p && {
+      id: p.id,
+      url: p.blobUrl,
+      postedTime: p.postedTime,
+      chip: CHIP[p.status ?? "checking"],
+      lines: dinerNoteLines(p),
+    },
+  };
 }
 
+// Diners see a neutral line while the automatic check hasn't run (staff still see the
+// failure and a "Check again" button on the upload page). Never shown as "no issues".
+function dinerNoteLines(photo: NonNullable<SpotToday["photo"]>) {
+  if (photo.status === "error" || photo.note === null) return ["Photo posted · automatic check pending"];
+  return photo.status === "issues" ? photo.note.split("; ") : [photo.note];
+}
+
+// Dot style and the words used in each cell's tooltip and the legend.
 const DOT: Record<DayState, { label: string; className: string }> = {
-  ok: { label: "No issues", className: "bg-green-600" },
-  issues: { label: "Issues", className: "bg-amber-500" },
-  unclear: { label: "Unclear", className: "bg-zinc-400" },
-  checking: { label: "Checking", className: "bg-zinc-300 dark:bg-zinc-600" },
+  ok: { label: "No visible issues", className: "bg-green-600" },
+  issues: { label: "Issues spotted", className: "bg-amber-500" },
+  unclear: { label: "Unclear photo", className: "bg-zinc-400" },
+  checking: { label: "Check pending", className: "bg-zinc-300 dark:bg-zinc-600" },
   error: { label: "Check pending", className: "bg-zinc-300 dark:bg-zinc-600" },
-  missed: { label: "Missed", className: "border-2 border-red-500 bg-transparent" },
+  missed: { label: "Not posted", className: "border-2 border-red-500 bg-transparent" },
 };
 
-function History({ days }: { days: DayRow[] }) {
-  const spotLabels = days[0].spots.map((s) => s.label);
-  return (
-    <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-medium">Last 7 days</h2>
-      <div className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800">
-        <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-xs text-zinc-500 dark:bg-zinc-900">
-            <tr>
-              <th scope="col" className="px-4 py-2 text-left font-medium">Day</th>
-              {spotLabels.map((label) => (
-                <th key={label} scope="col" className="px-1 py-2 text-center font-medium">
-                  {label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-            {days.map((day) => (
-              <tr key={day.date}>
-                <th scope="row" className="px-4 py-2.5 text-left font-normal whitespace-nowrap tabular-nums text-zinc-700 dark:text-zinc-300">
-                  {day.isToday ? "Today" : formatKitchenDay(day.date)}
-                </th>
-                {day.spots.map((s) => (
-                  <td key={s.key} className="px-1 py-2.5 text-center">
-                    <span
-                      role="img"
-                      aria-label={`${s.label}: ${DOT[s.state].label}`}
-                      title={`${s.label}: ${DOT[s.state].label}`}
-                      className={`inline-block size-3 rounded-full align-middle ${DOT[s.state].className}`}
-                    />
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-600 dark:text-zinc-400">
-        {(["ok", "issues", "unclear", "error", "missed"] as const).map((state) => (
-          <li key={state} className="flex items-center gap-1.5">
-            <span className={`inline-block size-2.5 rounded-full ${DOT[state].className}`} />
-            {DOT[state].label}
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
+// Days arrive newest first; the grid reads oldest → today, left to right.
+function toHistory(daysNewestFirst: DayRow[]): HistoryVM {
+  const days = [...daysNewestFirst].reverse();
+  const weekday = new Intl.DateTimeFormat("en-IN", { timeZone: KITCHEN_TZ, weekday: "short" });
+  const dayNum = new Intl.DateTimeFormat("en-IN", { timeZone: KITCHEN_TZ, day: "numeric" });
+  return {
+    days: days.map((d) => {
+      const noon = new Date(`${d.date}T12:00:00+05:30`);
+      return { date: d.date, weekday: weekday.format(noon), dayNum: dayNum.format(noon), isToday: d.isToday };
+    }),
+    rows: days[0].spots.map((spot, s) => ({
+      key: spot.key,
+      label: spot.label,
+      cells: days.map((d) => DOT[d.spots[s].state]),
+    })),
+    legend: (["ok", "issues", "unclear", "error", "missed"] as const).map((state) => DOT[state]),
+  };
 }
 
 // "stove", "stove and fridge", "prep counter, stove and fridge"

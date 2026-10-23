@@ -88,6 +88,15 @@ To tune the Claude prompt without uploading, put photos named after their spot (
 Preview deployments are behind Vercel login by default; sign in on the phone, or relax Deployment Protection while
 demoing.
 
+## Staff links
+
+Each restaurant has one private upload link (`/upload/<code>`); staff can also enter the code at `/staff`. If a link is
+lost or shared by mistake, issue a new one — the old link stops working immediately:
+
+```bash
+npm run staff:rotate -- --slug empire-restaurant
+```
+
 ## 11:00 reminder (optional)
 
 `GET /api/missing-today` with `Authorization: Bearer <REMINDER_SECRET>` returns, per restaurant, the spots with no
